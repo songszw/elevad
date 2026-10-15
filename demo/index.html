@@ -291,6 +291,8 @@ if (typeof PROPOSAL !== 'undefined' && PROPOSAL.strategy) {
   sheet.onclick = e => { if(e.target===sheet) sheet.classList.remove('show'); };
 } else { document.getElementById('btnSheet').style.display='none'; }
 
+// 兜底：3秒后自动收起 loading（即使引导未被点击）
+setTimeout(()=>document.getElementById('loading').classList.add('hide'), 3000);
 /* 微信/iOS 自动播放限制：首屏轻触引导 */
 const tap = document.getElementById('tap');
 tap.addEventListener('click', () => {

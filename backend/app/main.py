@@ -56,14 +56,11 @@ def health():
             "data": {"service": "elevad", "version": "0.2.0", "index_chunks": len(_INDEX)}}
 
 
-# ---- 静态托管 demo 页（部署后直接 http://host:port/ 即演示入口） ----
+# ---- 静态托管 demo 页（挂根路径，配合 nginx 前缀剥离部署） ----
 DEMO_DIR = Path(__file__).parent.parent.parent / "demo"
 if DEMO_DIR.is_dir():
-    app.mount("/demo", StaticFiles(directory=str(DEMO_DIR)), name="demo")
-
-    @app.get("/", include_in_schema=False)
-    def index():
-        return FileResponse(str(DEMO_DIR / "index.html"))
+    from fastapi.staticfiles import StaticFiles
+    app.mount("/", StaticFiles(directory=str(DEMO_DIR), html=True), name="demo")
 
 
 @app.post("/api/propose", response_model=ProposalResponse)
