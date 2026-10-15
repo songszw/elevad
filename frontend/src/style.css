@@ -1,0 +1,8 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, 'PingFang SC', sans-serif; background: #0a0a0f; color: #dfe8ff; }
+.app { max-width: 720px; margin: 0 auto; padding: 24px 16px; }
+header h1 { font-size: 22px; }
+.tag { font-size: 12px; color: #7ea6ff; margin-left: 8px; }
+header p { color: #8a94a8; font-size: 14px; margin-top: 6px; }
+.todo { margin-top: 24px; color: #9fb4dd; font-size: 14px; line-height: 1.7; }
+code { background: rgba(126,166,255,.15); padding: 2px 6px; border-radius: 4px; }

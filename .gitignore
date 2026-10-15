@@ -1,0 +1,22 @@
+# deps
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# build
+dist/
+build/
+
+# env & secrets
+.env
+*.key
+
+# editor / os
+.DS_Store
+.idea/
+.vscode/
+
+# data (案例库原始数据不入库)
+backend/data/raw/
