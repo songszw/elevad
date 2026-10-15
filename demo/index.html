@@ -32,6 +32,17 @@
     padding:6px 12px; border-radius:8px; backdrop-filter:blur(6px); }
   #status { position:fixed; top:calc(14px + env(safe-area-inset-top)); right:16px; z-index:30;
     color:#6ee7a8; font-size:12px; background:rgba(5,8,15,.5); padding:6px 12px; border-radius:8px; }
+  #sheet { position:fixed; left:0; right:0; bottom:0; transform:translateY(105%); transition:transform .35s cubic-bezier(.22,1,.36,1);
+    z-index:35; background:rgba(10,14,24,.94); backdrop-filter:blur(14px); color:#dfe8ff;
+    padding:16px 16px calc(18px + env(safe-area-inset-bottom)); border-top:1px solid rgba(138,180,255,.25);
+    max-height:62vh; overflow-y:auto; font-size:13px; line-height:1.65; }
+  #sheet.show { transform:translateY(0); }
+  #sheet h3 { font-size:14px; color:#8ab4ff; margin-bottom:8px; }
+  #sheet .row { margin-bottom:10px; }
+  #sheet .lbl { color:#7487a8; font-size:11px; margin-bottom:2px; }
+  #sheet .pill { display:inline-block; background:rgba(126,166,255,.16); border-radius:6px; padding:3px 8px; margin:2px 4px 2px 0; font-size:11px; }
+  #btnSheet { position:fixed; right:14px; bottom:76px; z-index:36; background:rgba(138,180,255,.9); color:#0a0e18;
+    font-size:12px; font-weight:600; padding:8px 14px; border-radius:999px; box-shadow:0 4px 18px rgba(138,180,255,.4); }
 </style>
 </head>
 <body>
@@ -45,7 +56,17 @@
   <div class="btn" id="btnReplay">重新播放</div>
   <div class="btn" id="btnSound">🔇 声音关</div>
 </div>
+<div id="btnSheet">📋 AI提案</div>
+<div id="sheet">
+  <h3>AI 生成的提案物料（RAG 引用真实案例）</h3>
+  <div class="row"><div class="lbl">策略摘要</div><span id="sStrategy"></span></div>
+  <div class="row"><div class="lbl">分时段文案（每6秒自动切换上刊）</div>
+    <span class="pill" id="sCopyM"></span><span class="pill" id="sCopyA"></span></div>
+  <div class="row"><div class="lbl">预算分配</div><span id="sBudget"></span></div>
+  <div class="row"><div class="lbl">引用来源</div><span id="sRefs"></span></div>
+</div>
 
+<script src="proposal.js"></script>
 <script type="importmap">
 { "imports": {
   "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
@@ -58,7 +79,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 /* ---------------- URL 参数 ---------------- */
 const qs = new URLSearchParams(location.search);
-const BRAND = qs.get('brand') || 'ElevAd';
+const BRAND = qs.get('brand') || (typeof PROPOSAL !== 'undefined' ? '霸王茶姬' : 'ElevAd');
 const VIDEO_URL = qs.get('video') || '';
 const AUTOCLOSE = qs.get('autoclose') === 'true';
 document.getElementById('brandTag').textContent = `${BRAND} · 实景预演`;
@@ -154,9 +175,13 @@ const doorR = panel(0.765, 2.4, 0.035,  0.3825, 1.2, 0.7, doorMat.clone());
 function makeBrandCanvasTexture(brand){
   const c = document.createElement('canvas'); c.width=1280; c.height=800;
   const g = c.getContext('2d');
-  let t = 0;
+  const hasP = typeof PROPOSAL !== 'undefined';
+  const copies = hasP && PROPOSAL.copywriting ?
+    [PROPOSAL.copywriting.morning || '', PROPOSAL.copywriting.afternoon || ''] :
+    ['您的广告正在电梯门上投放'];
+  let slot = 0, t = 0;
+  if (hasP) setInterval(()=>{ slot = (slot+1) % Math.max(1,copies.length); }, 6000); // 分时段切换
   const draw = () => {
-    // 深蓝渐变底 + 动态光斑
     const grad = g.createLinearGradient(0,0,1280,800);
     grad.addColorStop(0,'#0b1e3f'); grad.addColorStop(1,'#12295c');
     g.fillStyle = grad; g.fillRect(0,0,1280,800);
@@ -166,11 +191,18 @@ function makeBrandCanvasTexture(brand){
     g.fillStyle = rg; g.fillRect(0,0,1280,800);
     g.textAlign='center';
     g.fillStyle='#ffffff'; g.font='bold 130px -apple-system,PingFang SC,sans-serif';
-    g.fillText(brand, 640, 400);
-    g.fillStyle='rgba(255,255,255,.75)'; g.font='44px -apple-system,sans-serif';
-    g.fillText('您的广告正在电梯门上投放', 640, 490);
-    g.fillStyle='#7ea6ff'; g.font='bold 34px monospace';
-    g.fillText(`Tikin-3D · LIVE ${new Date().toLocaleTimeString()}`, 640, 700);
+    g.fillText(brand, 640, 380);
+    // 分时段文案（来自 AI 提案，自动换行）
+    const copy = copies[slot] || '';
+    g.font='42px -apple-system,PingFang SC,sans-serif';
+    const lineLen = 24; let y = 470;
+    for (let i=0;i<copy.length && y<640;i+=lineLen){
+      g.fillStyle='rgba(255,255,255,.9)';
+      g.fillText(copy.slice(i,i+lineLen), 640, y); y += 62;
+    }
+    g.fillStyle='#7ea6ff'; g.font='bold 30px monospace';
+    const tag = copies.length>1 ? (slot===0?'☀ 早高峰档':'🍵 午后档') : 'LIVE';
+    g.fillText(`${tag} · Tikin-3D LIVE ${new Date().toLocaleTimeString()}`, 640, 720);
     t += 0.03;
   };
   draw();
@@ -244,6 +276,20 @@ document.getElementById('btnSound').onclick = (e) => {
   soundOn = !soundOn; if (videoEl) videoEl.muted = !soundOn;
   e.target.textContent = soundOn ? '🔊 声音开' : '🔇 声音关';
 };
+
+/* AI提案面板 */
+if (typeof PROPOSAL !== 'undefined' && PROPOSAL.strategy) {
+  const $ = id => document.getElementById(id);
+  $('sStrategy').textContent = PROPOSAL.strategy;
+  $('sCopyM').textContent = '☀ ' + (PROPOSAL.copywriting.morning||'');
+  $('sCopyA').textContent = '🍵 ' + (PROPOSAL.copywriting.afternoon||'');
+  $('sBudget').innerHTML = Object.entries(PROPOSAL.budget_split||{})
+    .map(([k,v])=>`<span class="pill">${k} ${v}%</span>`).join('');
+  $('sRefs').innerHTML = (PROPOSAL.references||[]).map(r=>`<span class="pill">${r}</span>`).join('');
+  const sheet = $('sheet');
+  $('btnSheet').onclick = () => sheet.classList.toggle('show');
+  sheet.onclick = e => { if(e.target===sheet) sheet.classList.remove('show'); };
+} else { document.getElementById('btnSheet').style.display='none'; }
 
 /* 微信/iOS 自动播放限制：首屏轻触引导 */
 const tap = document.getElementById('tap');
