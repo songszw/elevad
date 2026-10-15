@@ -9,6 +9,8 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from . import rag
@@ -52,6 +54,16 @@ class ProposalResponse(BaseModel):
 def health():
     return {"code": 0, "msg": "ok",
             "data": {"service": "elevad", "version": "0.2.0", "index_chunks": len(_INDEX)}}
+
+
+# ---- 静态托管 demo 页（部署后直接 http://host:port/ 即演示入口） ----
+DEMO_DIR = Path(__file__).parent.parent.parent / "demo"
+if DEMO_DIR.is_dir():
+    app.mount("/demo", StaticFiles(directory=str(DEMO_DIR)), name="demo")
+
+    @app.get("/", include_in_schema=False)
+    def index():
+        return FileResponse(str(DEMO_DIR / "index.html"))
 
 
 @app.post("/api/propose", response_model=ProposalResponse)
